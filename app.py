@@ -50,6 +50,10 @@ class UserUpdate(BaseModel):
     last_name: str = Field(..., example="Sambo")
     gender: str = Field(..., example="M")
     status: str = Field(..., example="1")
+
+class UserDelete(BaseModel):
+    id: str = Field(..., example="enter your id")
+
 app = FastAPI()
 @app.on_event("startup")
 async def startup():
@@ -107,3 +111,13 @@ async def update_user(user: UserUpdate):
             )
     await database.execute(query)
     return await find_user_by_id(user.id)
+
+@app.delete("/users/{userId}")
+async def delete_user(user: UserDelete):
+    query = users.delete().where(users.c.id == user.id)
+    await database.execute(query)
+
+    return {
+        "status": True,
+        "message": "This user has been deleted successfully."
+    }
