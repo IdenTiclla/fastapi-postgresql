@@ -44,7 +44,12 @@ class UserEntry(BaseModel):
     last_name: str = Field(..., example="Sambo")
     gender: str = Field(..., example="M")
 
-
+class UserUpdate(BaseModel):
+    id: str = Field(..., example="Enter your id")
+    first_name: str = Field(..., example="Potine")
+    last_name: str = Field(..., example="Sambo")
+    gender: str = Field(..., example="M")
+    status: str = Field(..., example="1")
 app = FastAPI()
 @app.on_event("startup")
 async def startup():
@@ -81,3 +86,24 @@ async def register_user(user: UserEntry):
         "created_at": gDate,
         "status": 1
     }
+
+
+@app.get("/users/{userId}", response_model=UserList)
+async def find_user_by_id(userId: str):
+    query = users.select().where(users.c.id == userId)
+    return await database.fetch_one(query)
+
+@app.put("/users", response_model=UserList)
+async def update_user(user: UserUpdate):
+    gDate = str(datetime.datetime.now())
+    query = users.update().\
+        where(users.c.id == user.id).\
+            values(
+                first_name = user.first_name,
+                last_name = user.last_name,
+                gender = user.gender,
+                status = user.status,
+                created_at = gDate,
+            )
+    await database.execute(query)
+    return await find_user_by_id(user.id)
