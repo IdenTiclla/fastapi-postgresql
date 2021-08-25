@@ -2,6 +2,9 @@ from fastapi import FastAPI
 import databases, sqlalchemy, datetime, uuid
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Postgres database
 DATABASE_URL = "postgresql://usertest:usertest222@127.0.0.1:5432/dbtest"
 database = databases.Database(DATABASE_URL)
@@ -75,7 +78,7 @@ async def register_user(user: UserEntry):
     query = users.insert().values(
         id = gID,
         username = user.username,
-        password = user.password,
+        password = pwd_context.hash(user.password),
         first_name = user.first_name,
         last_name = user.last_name,
         gender = user.gender,
