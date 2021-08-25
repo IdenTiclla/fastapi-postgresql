@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-import databases, sqlalchemy
-
-
+import databases, sqlalchemy, datetime, uuid
+from pydantic import BaseModel, Field
+from typing import List, Optional
 # Postgres database
 DATABASE_URL = "postgresql://usertest:usertest222@127.0.0.1:5432/dbtest"
 database = databases.Database(DATABASE_URL)
@@ -26,8 +26,58 @@ engine = sqlalchemy.create_engine(
 
 metadata.create_all(engine)
 
-app = FastAPI()
+# models
+class UserList(BaseModel):
+    id: str
+    username: str
+    password: Optional[str]
+    first_name: str
+    last_name: str
+    gender: str
+    created_at: str
+    status: str
 
-@app.get('/users')
-def get_users():
-    return "list of users"
+class UserEntry(BaseModel):
+    username: str = Field(..., example="potinejj")
+    password: str = Field(..., example="potinejj")
+    first_name: str = Field(..., example="Potine")
+    last_name: str = Field(..., example="Sambo")
+    gender: str = Field(..., example="M")
+
+
+app = FastAPI()
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+@app.get('/users', response_model=List[UserList])
+async def find_all_users():
+    query = users.select()
+    return await database.fetch_all(query)
+
+@app.post("/users", response_model=UserList)
+async def register_user(user: UserEntry):
+    gID = str(uuid.uuid1())
+    gDate = str(datetime.datetime.now())
+    query = users.insert().values(
+        id = gID,
+        username = user.username,
+        password = user.password,
+        first_name = user.first_name,
+        last_name = user.last_name,
+        gender = user.gender,
+        created_at = gDate,
+        status = "1"
+    )
+
+    await database.execute(query)
+    return {
+        "id": gID,
+        **user.dict(),
+        "created_at": gDate,
+        "status": 1
+    }
